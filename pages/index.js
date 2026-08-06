@@ -1,15 +1,37 @@
+
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import ProfileTab from '../components/ProfileTab'; // 👈 Look at this new import!
+
+// We keep this here so the Ranks tab can still calculate your level
+const calculateLevel = (totalSeconds) => {
+  const m = Math.floor(totalSeconds / 60);
+  const h = Math.floor(totalSeconds / 3600);
+
+  if (h >= 200) return 13 + Math.floor((h - 200) / 50);
+  if (h >= 150) return 12;
+  if (h >= 100) return 11;
+  if (h >= 70) return 10;
+  if (h >= 50) return 9;
+  if (h >= 30) return 8;
+  if (h >= 20) return 7;
+  if (h >= 12) return 6;
+  if (h >= 6) return 5;
+  if (h >= 3) return 4;
+  if (h >= 1) return 3;
+  if (m >= 30) return 2;
+  if (m >= 5) return 1;
+  return 0; 
+};
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('Timer');
-  const [activeTime, setActiveTime] = useState(0); // Counts UP from 0
+  const [activeTab, setActiveTab] = useState('Profile'); 
+  const [activeTime, setActiveTime] = useState(0); 
   const [isActive, setIsActive] = useState(false);
   const [username, setUsername] = useState('');
   
   const [totalSecondsStudied, setTotalSecondsStudied] = useState(0);
 
-  // Load saved data when the app opens
   useEffect(() => {
     const savedUser = localStorage.getItem('studyhub_username');
     if (savedUser) setUsername(savedUser);
@@ -20,7 +42,6 @@ export default function Home() {
     const sessionStartTime = localStorage.getItem('studyhub_startTime');
     
     if (sessionStartTime) {
-      // If a session was running, calculate how much time passed while the app was closed
       const now = new Date().getTime();
       const start = parseInt(sessionStartTime, 10);
       setActiveTime(Math.floor((now - start) / 1000));
@@ -28,7 +49,6 @@ export default function Home() {
     }
   }, []);
 
-  // Stopwatch counting logic (adds 1 second infinitely)
   useEffect(() => {
     let interval = null;
     if (isActive) {
@@ -44,7 +64,6 @@ export default function Home() {
   const startTimer = () => {
     const now = new Date().getTime();
     setIsActive(true);
-    // Saves the exact start time so the stopwatch survives page refreshes!
     localStorage.setItem('studyhub_startTime', now.toString());
   };
 
@@ -80,7 +99,6 @@ export default function Home() {
 
   const myUsername = username || 'ganeshknikam1324';
   
-  // Clean leaderboard - Fake accounts removed!
   const rawLeaderboardData = [
     { name: myUsername, time: totalSecondsStudied, isMe: true }
   ];
@@ -93,14 +111,14 @@ export default function Home() {
         <title>StudyHub</title>
       </Head>
 
-      <header className="p-4 flex justify-between items-center border-b border-slate-800">
+      <header className="p-4 flex justify-between items-center border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-10">
         <h1 className="text-xl font-bold">StudyHub 📚</h1>
         <div className="text-sm text-slate-300">
           @{myUsername} 🛡️
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-8">
+      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-8 overflow-y-auto pb-24">
         
         {/* TIMER TAB */}
         {activeTab === 'Timer' && (
@@ -111,13 +129,13 @@ export default function Home() {
             </div>
             
             {!isActive ? (
-              <button onClick={startTimer} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold text-lg transition-colors">
+              <button onClick={startTimer} className="w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_15px_rgba(79,70,229,0.3)]">
                 Start Studying
               </button>
             ) : (
               <button 
                 onClick={stopAndSaveTime} 
-                className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold text-lg transition-colors"
+                className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold text-lg transition-colors shadow-[0_0_15px_rgba(16,185,129,0.3)]"
               >
                 Stop & Save Time
               </button>
@@ -151,36 +169,48 @@ export default function Home() {
                         {student.name}
                       </span>
                     </div>
-                    <span className="font-mono text-sm tracking-wide text-slate-300 bg-black/20 px-2 py-1 rounded">
-                      {formatLeaderboardDisplay(student.time)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-yellow-300 bg-yellow-900/50 px-2 py-0.5 rounded">
+                        Lvl {calculateLevel(student.time)}
+                      </span>
+                      <span className="font-mono text-sm tracking-wide text-slate-300 bg-black/20 px-2 py-1 rounded">
+                        {formatLeaderboardDisplay(student.time)}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
-            
-            {totalSecondsStudied === 0 && (
-              <p className="text-center text-slate-400 mt-8 text-sm">
-                Start a session to get your time on the board!
-              </p>
-            )}
           </div>
         )}
 
+        {/* 👇 THIS IS THE MAGIC CONNECTION TO YOUR NEW FILE! 👇 */}
+        {activeTab === 'Profile' && (
+          <ProfileTab 
+            username={myUsername} 
+            totalSecondsStudied={totalSecondsStudied} 
+          />
+        )}
+
+        {/* VAULT & DOUBTS */}
         {(activeTab === 'Vault' || activeTab === 'Doubts') && (
-          <div className="w-full max-w-md text-center">
+          <div className="w-full max-w-md text-center pt-10">
             <h2 className="text-2xl font-bold mb-4">{activeTab}</h2>
             <p className="text-slate-400">Under construction!</p>
           </div>
         )}
       </main>
 
-      <nav className="bg-slate-800 p-4 flex justify-around items-center rounded-t-2xl mt-auto">
-        {['Timer', 'Vault', 'Doubts', 'Ranks'].map((tab) => (
+      <nav className="bg-slate-800/90 backdrop-blur-md p-3 flex justify-around items-center rounded-t-3xl fixed bottom-0 w-full max-w-md left-1/2 -translate-x-1/2 border-t border-slate-700 shadow-[0_-5px_25px_rgba(0,0,0,0.3)] z-20">
+        {['Timer', 'Vault', 'Doubts', 'Ranks', 'Profile'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`font-medium ${activeTab === tab ? 'text-indigo-400' : 'text-slate-400 hover:text-slate-200'}`}
+            className={`font-medium text-[10px] sm:text-xs px-3 py-2.5 rounded-xl transition-all flex flex-col items-center gap-1 ${
+              activeTab === tab 
+                ? 'text-indigo-400 bg-indigo-900/40 shadow-inner' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
           >
             {tab}
           </button>
